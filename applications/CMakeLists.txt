@@ -2,6 +2,7 @@ set(APPLICATION_NAMES
     camera_capture
     camera_viewer
     face_detection
+    face_experiment
     face_modeling
     object_modeling
     )

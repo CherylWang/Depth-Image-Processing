@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Standard Libraries
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <chrono>
 
 // OpenGL
 #include <GL/glut.h>
@@ -38,18 +40,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dip/cameras/dumpfile.h>
 #include <dip/cameras/primesense.h>
 #include <dip/common/types.h>
+#include <dip/io/hdf5wrapper.h>
 #include <dip/segmentation/facemasker.h>
 
 using namespace cv;
 using namespace dip;
 using namespace std;
+using namespace std::chrono;
 
 const int kWindowWidth = 640;
 const int kWindowHeight = 480;
 
 const int kFramesPerSecond = 30;
 
-const bool kMasking = true;
 const bool kDownsample = true;
 const int kMinDepth = 256;
 const int kMinPixels = 10;
@@ -62,18 +65,26 @@ const int kExtendedSize = 50;
 
 const char kCascade[] = "haarcascade_frontalface_default.xml";
 
+bool g_masking = false;
+
 CascadeClassifier g_cascade;
 FaceMasker *g_masker = NULL;
 
 Camera *g_camera = NULL;
+HDF5Wrapper *g_dump = NULL;
 
 Depth *g_depth = NULL;
 Depth *g_downsampled_depth = NULL;
 Color *g_color = NULL;
 
+int g_frame = 0;
+
 GLuint g_texture;
 
 void close() {
+  if (g_dump != NULL)
+    delete g_dump;
+
   if (g_camera != NULL)
     delete g_camera;
 
@@ -98,13 +109,11 @@ void display() {
 
   // Update depth image.
   if (g_camera->Update(g_depth)) {
-    printf("Unable to update depth image.\n");
     close();
   }
 
   // Update color image.
   if (g_camera->Update(g_color)) {
-    printf("Unable to update color image.\n");
     close();
   }
 
@@ -118,12 +127,14 @@ void display() {
     }
   }
 
+  high_resolution_clock::time_point start = high_resolution_clock::now();
+
   // Detect faces in color image.
   Mat image(g_camera->height(COLOR_SENSOR), g_camera->width(COLOR_SENSOR),
             CV_8UC3, g_color);
 
   // Eliminate sub-images using depth image.
-  if (kMasking) {
+  if (g_masking) {
     Size window_size = g_cascade.getOriginalWindowSize();
 
     if (kDownsample) {
@@ -145,6 +156,10 @@ void display() {
 
   vector<Rect> faces;
   g_cascade.detectMultiScale(image, faces);
+
+  high_resolution_clock::time_point stop = high_resolution_clock::now();
+  duration<float> time_span = duration_cast<duration<float>>(stop - start);
+  float timing = time_span.count() * 1000.0f;
 
   // Update Texture
   glEnable(GL_TEXTURE_2D);
@@ -189,7 +204,58 @@ void display() {
     glEnd();
   }
 
+  if ((g_dump != NULL) && g_dump->enabled()) {
+    char group[64];
+    sprintf(group, "/FRAME%04d", g_frame);
+
+    hsize_t dimensions = 3;
+    float position[3];
+    int valid = 0;
+
+    g_dump->Read("POSITION", group, position, &dimensions, 1,
+                 H5T_NATIVE_FLOAT);
+
+    g_dump->Read("VALID", group, &valid, H5T_NATIVE_INT);
+
+    if (valid) {
+      // Project position to pixel location.
+      float u, v;
+      u = (g_camera->fx(DEPTH_SENSOR) * position[0] / position[2]) +
+          (g_camera->width(DEPTH_SENSOR) / 2);
+      v = g_camera->height(DEPTH_SENSOR) -
+          ((g_camera->fy(DEPTH_SENSOR) * position[1] / position[2]) +
+           (g_camera->height(DEPTH_SENSOR) / 2));
+
+
+      int true_positives = 0, false_positives = 0;
+      if (faces.size() > 0) {
+        for (unsigned int i = 0; i < faces.size(); i++) {
+          float left = faces[i].x;
+          float right = faces[i].x + faces[i].width;
+          float top = faces[i].y;
+          float bottom = faces[i].y + faces[i].height;
+
+          if ((u > left) && (u < right) && (v > top) && (v < bottom))
+            true_positives++;
+          else
+            false_positives++;
+        }
+      }
+
+      printf("%d: %d, %d, %f\n", g_frame, true_positives, false_positives,
+             timing);
+
+      glDisable(GL_TEXTURE_2D);
+      glPointSize(5);
+      glBegin(GL_POINTS);
+        glVertex2f(u / g_camera->width(DEPTH_SENSOR),
+                   1.0f - (v / g_camera->height(DEPTH_SENSOR)));
+      glEnd();
+    }
+  }
+
   glutSwapBuffers();
+  g_frame++;
 }
 
 void reshape(int w, int h) {
@@ -211,18 +277,22 @@ void timer(int fps) {
 }
 
 int main(int argc, char **argv) {
-  if (argc > 2) {
-    printf("Usage: %s [Dump File]\n", argv[0]);
+  if (argc < 2 || argc > 3) {
+    printf("Usage: %s <Masking> [Dump File]\n", argv[0]);
     return -1;
   }
 
   glutInit(&argc, argv);
 
+  g_masking = atoi(argv[1]) ? true : false;
+
   // Initialize camera.
-  if (argc < 2)
+  if (argc < 3) {
     g_camera = new PrimeSense();
-  else
-    g_camera = new DumpFile(argv[1]);
+  } else {
+    g_camera = new DumpFile(argv[2]);
+    g_dump = new HDF5Wrapper(argv[2], READ_HDF5);
+  }
 
   if (!g_camera->enabled()) {
     printf("Unable to Open Camera\n");
@@ -247,7 +317,7 @@ int main(int argc, char **argv) {
   }
 
   // Initialize face masker.
-  if (kMasking) {
+  if (g_masking) {
     g_masker = new FaceMasker;
     Ptr<CascadeClassifier::MaskGenerator> masker_ptr(g_masker);
     g_cascade.setMaskGenerator(masker_ptr);
