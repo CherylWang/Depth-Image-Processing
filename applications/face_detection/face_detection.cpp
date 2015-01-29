@@ -43,6 +43,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dip/io/hdf5wrapper.h>
 #include <dip/segmentation/facemasker.h>
 
+
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
 using namespace cv;
 using namespace dip;
 using namespace std;
@@ -205,6 +209,8 @@ void display() {
   }
 
   if ((g_dump != NULL) && g_dump->enabled()) {
+    Mat f = Mat(g_camera->height(COLOR_SENSOR), g_camera->width(COLOR_SENSOR), CV_8UC3, g_color);
+
     char group[64];
     sprintf(group, "/FRAME%04d", g_frame);
 
@@ -235,10 +241,17 @@ void display() {
           float top = faces[i].y;
           float bottom = faces[i].y + faces[i].height;
 
-          if ((u > left) && (u < right) && (v > top) && (v < bottom))
+          if ((u > left) && (u < right) && (v > top) && (v < bottom)) {
             true_positives++;
-          else
+            rectangle(f, Point(faces[i].x, faces[i].y),
+                      Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height),
+                      Scalar(0, 255, 0), 2);
+          } else {
             false_positives++;
+            rectangle(f, Point(faces[i].x, faces[i].y),
+                      Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height),
+                      Scalar(255, 0, 0), 2);
+          }
         }
       }
 
@@ -252,6 +265,13 @@ void display() {
                    1.0f - (v / g_camera->height(DEPTH_SENSOR)));
       glEnd();
     }
+
+    cvtColor(f, f, CV_RGB2BGR);
+    static int frames = 0;
+    char name[256];
+    sprintf(name, "frame%04d-faces.png", frames);
+    imwrite(name, f);
+    frames++;
   }
 
   glutSwapBuffers();

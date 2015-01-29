@@ -40,7 +40,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dip/common/types.h>
 #include <dip/visualization/colorize.h>
 
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
 using namespace dip;
+using namespace cv;
 
 const int kWindowWidth = 640;
 const int kWindowHeight = 480;
@@ -93,11 +97,13 @@ void display() {
     close();
   }
 
+   static Colorize colorize;
+    colorize.Run(g_camera->width(DEPTH_SENSOR), g_camera->height(DEPTH_SENSOR),
+                 g_depth, g_colorized_depth);
+
   if (g_display == DEPTH_SENSOR) {
     // Colorize Depth
-    static Colorize colorize;
-    colorize.Run(g_camera->width(DEPTH_SENSOR), g_camera->height(DEPTH_SENSOR),
-                 kMinDepth, kMaxDepth, g_depth, g_colorized_depth);
+
 
     // Update Texture
     glEnable(GL_TEXTURE_2D);
@@ -138,6 +144,18 @@ void display() {
   glDisable(GL_TEXTURE_2D);
 
   glutSwapBuffers();
+
+  Mat d = Mat(g_camera->height(DEPTH_SENSOR), g_camera->width(DEPTH_SENSOR), CV_8UC3, g_colorized_depth);
+  Mat c = Mat(g_camera->height(COLOR_SENSOR), g_camera->width(COLOR_SENSOR), CV_8UC3, g_color);
+  cvtColor(c, c, CV_RGB2BGR);
+  cvtColor(d, d, CV_RGB2BGR);
+  static int frames = 0;
+  char name[256];
+  sprintf(name, "frame%04d-depth.png", frames);
+  imwrite(name, d);
+  sprintf(name, "frame%04d-color.png", frames);
+  imwrite(name, c);
+  frames++;
 }
 
 void reshape(int w, int h) {

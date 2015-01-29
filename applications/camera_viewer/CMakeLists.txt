@@ -33,6 +33,7 @@ set(SRCS
 
 set(LIBS
     ${GLUT_LIBRARIES}
+    ${OpenCV_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${MODULE_DEPENDENCIES}
     )
