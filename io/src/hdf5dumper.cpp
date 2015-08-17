@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dip/io/hdf5dumper.h>
 
 #include <string>
+#include <string.h>
 
 using namespace std;
 

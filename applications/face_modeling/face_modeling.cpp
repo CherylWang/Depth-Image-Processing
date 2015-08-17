@@ -33,6 +33,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // OpenGL
 #include <GL/glut.h>
 
+//why--------------------------0
+#include "opencv/cv.h"
+#include "opencv/highgui.h"
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+#include "opencv2/imgproc/imgproc.hpp"
+
+using namespace cv;
+//why----------------------------0
+
 // DIP
 #include <dip/cameras/dumpfile.h>
 #include <dip/cameras/primesense.h>
@@ -46,7 +56,7 @@ using namespace dip;
 
 const int kWindowWidth = 640;
 const int kWindowHeight = 480;
-
+     
 const int kFramesPerSecond = 60;
 
 Camera *g_camera = NULL;
@@ -55,7 +65,10 @@ OBJFile *g_obj_file = NULL;
 
 Depth *g_depth = NULL;
 Color *g_normals = NULL;
+//-----------------------------------------------why1 s
+Color *g_color = NULL;
 
+//-----------------------------------------------why1 e
 GLuint g_texture;
 
 void close() {
@@ -90,13 +103,29 @@ void display() {
 
   // Update Frame
   if (g_camera->Update(g_depth)) {
-    printf("Unable to Update Frame\n");
+    printf("Unable to Update depth Frame\n");
     close();
   }
 
-  // Update Model
-  g_modeling->Run(g_depth, g_normals);
 
+  //-----------------------------------------------why1 s
+
+   if(g_camera->Update(g_color))
+    {
+    printf("Unable to Update color Frame\n");
+    close();
+    }
+   cv::Mat cvBGRImg;
+   cv::Mat cvRGBImg_color(g_camera->height(COLOR_SENSOR),
+                          g_camera->width(COLOR_SENSOR),
+                          CV_8UC3,g_color);
+
+   cv::cvtColor(cvRGBImg_color,cvBGRImg, CV_RGB2BGR);
+
+
+  // Update Model
+  g_modeling->Run(g_depth,cvBGRImg,g_normals); //only change
+  //-----------------------------------------------why1 e
   // Update Texture
   glEnable(GL_TEXTURE_2D);
 
@@ -182,6 +211,13 @@ int main(int argc, char **argv) {
                       g_camera->height(DEPTH_SENSOR)];
   g_normals = new Color[g_camera->width(DEPTH_SENSOR) *
                         g_camera->height(DEPTH_SENSOR)];
+
+  //-----------------------------------------------why2 s
+
+  g_color = new Color[g_camera->height(COLOR_SENSOR)*g_camera->width(COLOR_SENSOR)];
+
+  //-----------------------------------------------why2 e
+
 
   // Initialize OpenGL
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);

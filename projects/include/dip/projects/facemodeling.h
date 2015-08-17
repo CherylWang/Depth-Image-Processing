@@ -62,6 +62,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DIP_PROJECTS_FACEMODELING_H
 #define DIP_PROJECTS_FACEMODELING_H
 
+
+//why--------------------------1
+#include "opencv/cv.h"
+#include "opencv/highgui.h"
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+#include "opencv2/imgproc/imgproc.hpp"
+#include <pcl/gpu/octree/octree.hpp>
+#include <pcl/gpu/containers/device_array.hpp>
+#include <pcl/io/io.h>
+#include <pcl/io/pcd_io.h>  
+#include <pcl/point_types.h> 
+using namespace cv;
+//why----------------------------2
+
+
 #include <Eigen/Dense>
 
 #include <dip/common/macros.h>
@@ -206,7 +222,7 @@ public:
   //  transform  - Transformation matrix from the current frames coordinate
   //               system to the global coordinate system.
   // Returns zero on success.
-  int Run(const Depth *depth, Color *normal_map = NULL,
+  int Run(const Depth *depth,cv::Mat cvRGBImg_color, Color *normal_map = NULL,
           Eigen::Matrix4f *transform = NULL);
 
   // Generate Model's mesh using Marching Cubes.
@@ -235,6 +251,26 @@ private:
   Depth *filtered_depth_;
   Depth *denoised_depth_;
   Depth *depth_pyramid_[kPyramidLevels];
+
+
+//----------why2 s
+Depth *denoised_depth_c;
+
+
+
+pcl::PointCloud<pcl::PointXYZ> cloud_2;
+Vertices cloud_1;
+
+char  pname[100];
+int   count;
+int   count_num;
+
+
+
+unsigned short max_pixel;
+  //----------why2 e
+
+
 
   // Point-clouds corresponding to the current depth image.
   // These buffers are allocated on the GPU. They are updated

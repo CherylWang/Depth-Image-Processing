@@ -22,8 +22,19 @@ foreach(DEPENDENT ${MODULE_DEPENDENCIES})
     )
 endforeach(DEPENDENT)
 
+#add pcl------1
+Find_PACKAGE(PCL REQUIRED)
+LINK_DIRECTORIES(${PCL_LIBRARY_DIRS})
+ADD_DEFINITIONS(${PCL_DEFINITIONS})
+
+# OpenCV--------2
+Find_PACKAGE(OpenCV REQUIRED)
+
+
 set(INCLUDE_DIRS
     ${INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}      #3--------
+    ${OpenCV_INCLUDE_DIRS}   #3--------
     include/
     )
 
@@ -41,6 +52,8 @@ set(SRCS
 
 set(LIBS
     ${MODULE_DEPENDENCIES}
+    ${PCL_LIBRARIES}    #4-------- 
+    ${OpenCV_LIBS}      #4--------
     )
 
 add_library(${MODULE_NAME} ${SRCS} ${INCS})

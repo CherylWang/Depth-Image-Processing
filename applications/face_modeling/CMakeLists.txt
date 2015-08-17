@@ -25,9 +25,23 @@ foreach(DEPENDENT ${MODULE_DEPENDENCIES})
     )
 endforeach(DEPENDENT)
 
+#add pcl
+Find_PACKAGE(PCL REQUIRED)
+LINK_DIRECTORIES(${PCL_LIBRARY_DIRS})
+ADD_DEFINITIONS(${PCL_DEFINITIONS})
+
+# OpenCV
+Find_PACKAGE(OpenCV REQUIRED)
+
+
 set(INCLUDE_DIRS
     ${INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
     )
+
+
+
 
 include_directories(${INCLUDE_DIRS})
 
@@ -42,6 +56,8 @@ set(LIBS
     ${GLUT_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${MODULE_DEPENDENCIES}
+    ${PCL_LIBRARIES}
+    ${OpenCV_LIBS}
     )
 
 add_executable(${APPICATION_NAME} ${SRCS} ${INCS})
