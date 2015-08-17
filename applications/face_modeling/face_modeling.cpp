@@ -67,7 +67,7 @@ Depth *g_depth = NULL;
 Color *g_normals = NULL;
 //-----------------------------------------------why1 s
 Color *g_color = NULL;
-
+bool  save = false;
 //-----------------------------------------------why1 e
 GLuint g_texture;
 
@@ -124,7 +124,7 @@ void display() {
 
 
   // Update Model
-  g_modeling->Run(g_depth,cvBGRImg,g_normals); //only change
+  g_modeling->Run(g_depth,cvBGRImg,save,g_normals); //only change
   //-----------------------------------------------why1 e
   // Update Texture
   glEnable(GL_TEXTURE_2D);
@@ -157,16 +157,17 @@ void display() {
 void reshape(int w, int h) {
   glViewport(0, 0, w, h);
 }
-
+//-----------------------------------------------------------why change
 void keyboard(unsigned char key, int x, int y) {
   switch (key) {
   // Quit Program
   case 27:
-    close();
-    break;
+    close(); break;
+  case 49:
+    save = true; break;
   }
 }
-
+//----------------------------------------------------------why change
 void timer(int fps) {
   glutPostRedisplay();
   glutTimerFunc(1000 / fps, timer, fps);

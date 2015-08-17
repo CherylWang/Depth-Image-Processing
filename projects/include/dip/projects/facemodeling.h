@@ -222,7 +222,7 @@ public:
   //  transform  - Transformation matrix from the current frames coordinate
   //               system to the global coordinate system.
   // Returns zero on success.
-  int Run(const Depth *depth,cv::Mat cvRGBImg_color, Color *normal_map = NULL,
+  int Run(const Depth *depth,cv::Mat cvRGBImg_color, bool save,Color *normal_map = NULL,
           Eigen::Matrix4f *transform = NULL);
 
   // Generate Model's mesh using Marching Cubes.

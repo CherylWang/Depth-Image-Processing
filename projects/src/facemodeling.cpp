@@ -44,7 +44,6 @@ FaceModeling::FaceModeling(int width, int height, float fx, float fy,
 
 denoised_depth_c = new Depth[width_*height_];
 
-count = 0;
 count_num = 0;
 
 cloud_1.x = new float[width_*height_];
@@ -167,7 +166,7 @@ FaceModeling::~FaceModeling() {
   Deallocate((void*)normal_map_);
 }
 
-int FaceModeling::Run(const Depth *depth,cv::Mat cvRGBImg_color,Color *normal_map,
+int FaceModeling::Run(const Depth *depth,cv::Mat cvRGBImg_color,bool save,Color *normal_map,
                       Matrix4f *transform) {
   // Segment the user's head from the depth image.
   if (head_segmentation_.Run(kMinDepth, kMaxDepth, kMaxDifference,
@@ -300,7 +299,7 @@ int FaceModeling::Run(const Depth *depth,cv::Mat cvRGBImg_color,Color *normal_ma
 
    
    //why---------------------------------2s download and save
-   if(count==10)
+   if(save)
    {
   
    
@@ -378,13 +377,12 @@ int FaceModeling::Run(const Depth *depth,cv::Mat cvRGBImg_color,Color *normal_ma
     printf("SAVE SUCCEED %d",count);
     //save end
     count_num++;
-    count = 0;
+
+    // reset save
+    save = false;
+
    }
 
-  
-
-  //update count
-  count++;
   //why-------------------------------------------------2e
 
   // Update Model Center
