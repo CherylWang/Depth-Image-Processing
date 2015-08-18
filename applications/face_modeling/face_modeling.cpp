@@ -30,18 +30,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 
+//---------------------------------------------why
+#include<sys/stat.h>
+#include<sys/types.h>
+//---------------------------------------------why
+
 // OpenGL
 #include <GL/glut.h>
 
-//why--------------------------0
+
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include "opencv2/imgproc/imgproc.hpp"
-
+#include <GL/freeglut_ext.h>
 using namespace cv;
-//why----------------------------0
 
 // DIP
 #include <dip/cameras/dumpfile.h>
@@ -62,22 +66,94 @@ const int kFramesPerSecond = 60;
 Camera *g_camera = NULL;
 FaceModeling *g_modeling = NULL;
 OBJFile *g_obj_file = NULL;
+GLuint g_texture;
+
 
 Depth *g_depth = NULL;
 Color *g_normals = NULL;
-//-----------------------------------------------why1 s
 Color *g_color = NULL;
-bool  save = false;
-//-----------------------------------------------why1 e
-GLuint g_texture;
 
-void close() {
+//-----------------------------------------------why1 s
+char   folder_name[100];
+char   objFile[100];
+bool   save_Depth   = false;   
+bool   save_Color   = false;
+bool   save_Normal  = false;
+bool   save_Cloud   = false;
+bool   pause_run        = false;
+//-----------------------------------------------why1 e
+
+
+
+//-----------------------------------------------why add s
+void print_info()
+{
+   printf("---------------------------------------------\n");
+   printf("press : ESC to save current and exit\n");
+   printf("press : 1   to open/close save_depth\n");
+   printf("press : 2   to open/close save_color\n");
+   printf("press : 3   to open/close save_normal\n");
+   printf("press : 4   to open/close save_cloud\n");
+   printf("press : 5   to reset the work, whcih mean the current folder will be deleted\n");
+   printf("press : 6   to save current obj and reset\n");
+   printf("press : 7   to pause/continue\n");
+}
+
+
+
+void new_Folder()
+{//new folder and objFile    
+   printf("please type in the name of the current Folder  eg: why \n");
+   scanf("%s",folder_name);
+   mkdir(folder_name,S_IRWXU);
+   sprintf(objFile,"%s%s",folder_name,"/1.obj"); 
+   g_obj_file = new OBJFile(objFile, CREATE_OBJ);
+}
+
+
+
+void save_obj()
+{
   if (g_obj_file->enabled()) {
     Mesh mesh;
     g_modeling->Model(&mesh);
     g_obj_file->Write(&mesh);
   }
+}
 
+
+void reset()
+{// 1:jump out of glutMainLoop 2:reset flags 3:reset variabiles in facemodeling.cpp 4:restart glutMainLoop
+
+    //glutLeaveMainLoop();
+    printf("jump out already,  begin to reset......................................................\n");
+    save_Depth   = false;   
+    save_Color   = false;
+    save_Normal  = false;
+    save_Cloud   = false;
+    pause_run    = false;
+    printf("clear flags over......................................................\n");        
+ //   g_modeling->reset_facemodeling();
+    print_info();
+    delete g_obj_file;
+    g_obj_file = NULL;
+    new_Folder();
+  if (g_modeling != NULL)
+    delete g_modeling;
+ g_modeling = new FaceModeling(g_camera->width(DEPTH_SENSOR),
+                                g_camera->height(DEPTH_SENSOR),
+                                g_camera->fx(DEPTH_SENSOR),
+                                g_camera->fy(DEPTH_SENSOR),
+                                g_camera->width(DEPTH_SENSOR) / 2.0f,
+                                g_camera->height(DEPTH_SENSOR) / 2.0f);
+
+    //glutMainLoop();
+}
+
+
+void close() {
+
+  save_obj();
   if (g_camera != NULL)
     delete g_camera;
   if (g_modeling != NULL)
@@ -93,6 +169,37 @@ void close() {
   exit(0);
 }
 
+
+void keyboard(unsigned char key, int x, int y) {
+  switch (key) {
+  // Quit Program
+  case 27:
+    close();      break;
+  case 49:
+    save_Depth = !save_Depth;   break;
+  case 50:
+    save_Color = !save_Color;   break;
+  case 51:
+    save_Normal = !save_Normal; break;
+  case 52:
+    save_Cloud  = !save_Cloud;  break;
+  case 53:
+    //delete abandoned folder  ---------uncompleted
+    //???
+    //delete abandoned folder  ---------uncompleted
+    reset();       break;
+  case 54:
+    save_obj();
+    reset();       break;
+  case 55:
+    pause_run = !pause_run;break;
+  }
+}
+
+
+//-----------------------------------------------why add e
+
+
 void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -101,14 +208,15 @@ void display() {
 
   glOrtho(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
 
+//---------------------------------------------------------------why pause s
+  
+if(!pause_run){
+
   // Update Frame
   if (g_camera->Update(g_depth)) {
     printf("Unable to Update depth Frame\n");
     close();
   }
-
-
-  //-----------------------------------------------why1 s
 
    if(g_camera->Update(g_color))
     {
@@ -124,9 +232,13 @@ void display() {
 
 
   // Update Model
-  g_modeling->Run(g_depth,cvBGRImg,save,g_normals); //only change
-  //-----------------------------------------------why1 e
-  // Update Texture
+  g_modeling->Run(save_Depth, save_Color, save_Normal, save_Cloud , folder_name, g_depth,cvBGRImg,g_normals); //only change 
+
+}//if(!pause_run) 
+//-------------------------------------------------------------why pause e 
+ 
+
+ // Update Texture
   glEnable(GL_TEXTURE_2D);
 
   glBindTexture(GL_TEXTURE_2D, g_texture);
@@ -154,36 +266,35 @@ void display() {
   glutSwapBuffers();
 }
 
+
 void reshape(int w, int h) {
   glViewport(0, 0, w, h);
 }
-//-----------------------------------------------------------why change
-void keyboard(unsigned char key, int x, int y) {
-  switch (key) {
-  // Quit Program
-  case 27:
-    close(); break;
-  case 49:
-    save = true; break;
-  }
-}
-//----------------------------------------------------------why change
+
+
 void timer(int fps) {
   glutPostRedisplay();
   glutTimerFunc(1000 / fps, timer, fps);
 }
 
 int main(int argc, char **argv) {
-  if ((argc < 2) || (argc > 3)) {
-    printf("Usage: %s <Mesh File> [Dump File]\n", argv[0]);
+  if (argc > 2|| argc<1) {
+    printf("Usage: %s [Dump File]\n", argv[0]);
+    printf("do not need <Mesh File> here\n");
     return -1;
   }
+  
+  //-------------------------------------why s
+  print_info();
+  
+  new_Folder();
+  //-------------------------------------why e
 
   glutInit(&argc, argv);
 
   // Initialize Camera
-  if (argc > 2) {
-    g_camera = new DumpFile(argv[2]);
+  if (argc > 1) {
+    g_camera = new DumpFile(argv[1]);
   } else {
 #ifndef SOFTKINETIC
     g_camera = new PrimeSense();
@@ -205,19 +316,14 @@ int main(int argc, char **argv) {
                                 g_camera->width(DEPTH_SENSOR) / 2.0f,
                                 g_camera->height(DEPTH_SENSOR) / 2.0f);
 
-  g_obj_file = new OBJFile(argv[1], CREATE_OBJ);
 
-  // Initialize Buffers
+// Initialize Buffers
   g_depth = new Depth[g_camera->width(DEPTH_SENSOR) *
                       g_camera->height(DEPTH_SENSOR)];
   g_normals = new Color[g_camera->width(DEPTH_SENSOR) *
                         g_camera->height(DEPTH_SENSOR)];
 
-  //-----------------------------------------------why2 s
-
   g_color = new Color[g_camera->height(COLOR_SENSOR)*g_camera->width(COLOR_SENSOR)];
-
-  //-----------------------------------------------why2 e
 
 
   // Initialize OpenGL
@@ -245,8 +351,11 @@ int main(int argc, char **argv) {
                NULL);
 
   glDisable(GL_TEXTURE_2D);
-
+  
+ 
+  
   glutMainLoop();
-
+       
+  
   return 0;
 }
