@@ -212,6 +212,11 @@ public:
   FaceModeling(int width, int height, float fx, float fy, float cx, float cy);
   ~FaceModeling();
 
+
+    
+  //-----------------------------------------------------why
+   
+ 
   // Add a depth image into the 3D face model.
   //  depth      - The depth image to be integrated into the model. The
   //               dimensions of the image should be the same as the dimensions
@@ -222,14 +227,20 @@ public:
   //  transform  - Transformation matrix from the current frames coordinate
   //               system to the global coordinate system.
   // Returns zero on success.
-  int Run(const Depth *depth,cv::Mat cvRGBImg_color, bool save,Color *normal_map = NULL,
-          Eigen::Matrix4f *transform = NULL);
+  int Run(bool save_Depth,bool save_Color, bool save_Normal, bool save_Cloud ,  char *folder_name,
+          const Depth *depth,cv::Mat cvRGBImg_color, Color *normal_map = NULL,Eigen::Matrix4f *transform = NULL);
+  
+  int reset_facemodeling();
+  //-----------------------------------------------------why
+
+
 
   // Generate Model's mesh using Marching Cubes.
   //  mesh - Pointer to mesh data structure. Marching cubes will add the model's
   //         vertices, faces, and edges to data structure.
   void Model(Mesh *mesh);
 
+ 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
   // Modules used to construct the 3D face model.
@@ -253,7 +264,7 @@ private:
   Depth *depth_pyramid_[kPyramidLevels];
 
 
-//----------why2 s
+//-----------------------------------------------------why2 s
 Depth *denoised_depth_c;
 
 
@@ -262,14 +273,13 @@ pcl::PointCloud<pcl::PointXYZ> cloud_2;
 Vertices cloud_1;
 
 char  pname[100];
-int   count;
 int   count_num;
 
 
+//-----------------------------------------------------why2 e
+
 
 unsigned short max_pixel;
-  //----------why2 e
-
 
 
   // Point-clouds corresponding to the current depth image.

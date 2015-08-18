@@ -40,10 +40,8 @@ FaceModeling::FaceModeling(int width, int height, float fx, float fy,
                            fx_(fx), fy_(fy), cx_(cx), cy_(cy),
                            initial_frame_(true), failed_frames_(0) {
 
-//why-----------------------------------1s Allocate could umage on CPU
 
 denoised_depth_c = new Depth[width_*height_];
-
 count_num = 0;
 
 cloud_1.x = new float[width_*height_];
@@ -55,12 +53,6 @@ cloud_2.width = width_;
 cloud_2.height = height_;
 cloud_2.is_dense = false;
 cloud_2.points.resize(cloud_2.width*cloud_2.height);
-
-
-
-//why-----------------------------------1e
-
-
 
   // Allocate depth image on the CPU.
   depth_ = new Depth[width_ * height_];
@@ -121,21 +113,13 @@ cloud_2.points.resize(cloud_2.width*cloud_2.height);
 
 FaceModeling::~FaceModeling() {
 
- //------------------------------------------why ~
-
 
  delete [] denoised_depth_c;
  delete [] cloud_1.x;
  delete [] cloud_1.y;
  delete [] cloud_1.z;
 
- //delete [] vertices_C;
- //Deallocate((void*)(vertices_G));
-
-
- //-------------------------------------------why ~
-
-  delete [] depth_;
+ delete [] depth_;
 
   Deallocate((void*)(segmented_depth_));
   Deallocate((void*)(filtered_depth_));
@@ -166,8 +150,8 @@ FaceModeling::~FaceModeling() {
   Deallocate((void*)normal_map_);
 }
 
-int FaceModeling::Run(const Depth *depth,cv::Mat cvRGBImg_color,bool save,Color *normal_map,
-                      Matrix4f *transform) {
+int FaceModeling::Run(bool save_Depth, bool save_Color,bool save_Normal, bool save_Cloud ,char *folder_name,
+                      const Depth *depth,cv::Mat cvRGBImg_color, Color *normal_map ,Eigen::Matrix4f *transform){
   // Segment the user's head from the depth image.
   if (head_segmentation_.Run(kMinDepth, kMaxDepth, kMaxDifference,
                              kMinHeadWidth, kMinHeadHeight,
@@ -298,92 +282,58 @@ int FaceModeling::Run(const Depth *depth,cv::Mat cvRGBImg_color,bool save,Color 
     *transform = transformation_;
 
    
-   //why---------------------------------2s download and save
-   if(save)
-   {
+//why---------------------------------2s download and save
   
-   
-
-    
-
-    Download(denoised_depth_c, denoised_depth_ ,sizeof(Depth)*width_*height_);
-    Download(cloud_1.x,vertices_[0].x,sizeof(float) * width_ * height_);
-    Download(cloud_1.y,vertices_[0].y,sizeof(float) * width_ * height_);
-    Download(cloud_1.z,vertices_[0].z,sizeof(float) * width_ * height_);
-   
-  /*
-    for(int i=0;i<width_ * height_;i++)
-    {//show the data
-      //printf("%d ",normal_map[i].r);
-      //printf("%d ",normal_map[i].g);
-      //printf("%d ",normal_map[i].b);
-      printf("%f ",cloud_1.x[i]);
-      printf("%f ",cloud_1.y[i]);
-      printf("%f ",cloud_1.z[i]);
-    }
-    
-   */
-     
-
-    //change format cloud s
-   
-    for(int i=0 ; i<height_;i++)
-     for(int j=0; j<width_;j++)
-     {
-        int idx = i*height_+j;
-        cloud_2.points[idx].x = cloud_1.x[idx];
-        cloud_2.points[idx].y = cloud_1.y[idx];
-        cloud_2.points[idx].z = cloud_1.z[idx];
-        //printf("%f ",cloud_2.points[idx].x);
-        //printf("%f ",cloud_2.points[idx].y);
-       // printf("%f ",cloud_2.points[idx].z);
-     }
-    
   
-    
-    //max_pixel = std::max(denoised_depth_);
-    //cv::Mat cvRawImg16U(height_,width_, CV_16UC1,denoised_depth_);
-    //cvRawImg16U.convertTo(cvDepthImg, CV_8U, 255.0/(cvRawImg16U.getMaxPixelValue()));
-    //change format e
-    
-   
-    //save
-    //sprintf(pname,"%s%d%s","/home/gm/why/Depth-Image-Processing-master/build/applications/face_modeling/Images/Color_",count, ".jpg");
-    /*
-    
-   */
-    
+
+    if(save_Normal){
     cv::Mat cvRGBImg( height_,width_, CV_8UC3,normal_map);
     //cv::cvtColor(cvRGBImg, cvBGRImg, CV_RGB2BGR);
-    sprintf(pname,"%s%d%s","Normal_",count_num, ".jpg");
+    sprintf(pname,"%s%s%d%s",folder_name,"/Normal_",count_num, ".jpg");
     cv::imwrite(pname,cvRGBImg);
+    }
 
-
-    
-    sprintf(pname,"%s%d%s","Depth_",count_num, ".jpg");
+    if(save_Depth){
+    Download(denoised_depth_c, denoised_depth_ ,sizeof(Depth)*width_*height_);
+    sprintf(pname,"%s%s%d%s",folder_name,"/Depth_",count_num, ".jpg");
     cv::Mat cvDepthImg(height_,width_,CV_16UC1,(void*)denoised_depth_c); 
 
     //cv::imshow(cvDepthImg);
     cv::imwrite(pname,cvDepthImg); 
     //cvDepthImg.release();
-    
-    sprintf(pname,"%s%d%s","Color_",count_num, ".jpg");
+    }
+   
+    if(save_Color){
+    sprintf(pname,"%s%s%d%s",folder_name,"/Color_",count_num, ".jpg");
     cv::imwrite(pname,cvRGBImg_color);
+    }
+  
+    if(save_Cloud){    
+    Download(cloud_1.x,vertices_[0].x,sizeof(float) * width_ * height_);
+    Download(cloud_1.y,vertices_[0].y,sizeof(float) * width_ * height_);
+    Download(cloud_1.z,vertices_[0].z,sizeof(float) * width_ * height_);
+   
+    //change format cloud s
+    for(int i=0 ; i<height_;i++)
+     for(int j=0; j<width_;j++)
+       {
+        int idx = i*height_+j;
+        cloud_2.points[idx].x = cloud_1.x[idx];
+        cloud_2.points[idx].y = cloud_1.y[idx];
+        cloud_2.points[idx].z = cloud_1.z[idx];
 
- 
-    sprintf(pname,"%s%d%s","Cloud_",count_num, ".pcd");   
+       }
+    sprintf(pname,"%s%s%d%s",folder_name,"/Cloud_",count_num, ".pcd");   
     pcl::io::savePCDFileASCII (pname, cloud_2);
-
-    printf("SAVE SUCCEED %d",count);
-    //save end
-    count_num++;
-
-    // reset save
-    save = false;
-
    }
 
-  //why-------------------------------------------------2e
+
+
+    if(save_Depth||save_Color||save_Normal||save_Cloud)
+    {
+     count_num++;
+    }
+//why-------------------------------------------------2e
 
   // Update Model Center
   previous_center_ = center;
@@ -406,5 +356,22 @@ void FaceModeling::Model(Mesh *mesh) {
 
   delete [] volume;
 }
+
+
+//----------------------------------------why
+int FaceModeling::reset_facemodeling()
+  {
+     //Clear((void*)volume_, sizeof(Voxel) *
+     //   kVolumeSize * kVolumeSize * kVolumeSize);
+     Clear((void*)&model_vertices_, sizeof(Vertices) *
+           width_ * height_);
+     // Clear((void*)&model_normals_, sizeof(Normals) *
+     //   width_ * height_);
+     // transformation_.setIdentity();
+     initial_frame_ = true;
+     failed_frames_  = 0 ;
+      count_num = 0;
+  }
+//----------------------------------------why
 
 } // namespace dip
