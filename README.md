@@ -21,3 +21,9 @@ DIP can be compiled and installed using CMake.
 * OpenCV
 * OpenNI2
 * OpenGL/GLUT
+* PCL 1.7
+
+when run face_modeling
+type in : 
+ ./face_modeling filename h         --------read frames from HDF5 file
+ ./face_omdeling filename 任意字符   --------read frames from .oni file 
