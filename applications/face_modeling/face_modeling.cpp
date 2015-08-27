@@ -49,6 +49,7 @@ using namespace cv;
 
 // DIP
 #include <dip/cameras/dumpfile.h>
+#include <dip/cameras/onifile.h>
 #include <dip/cameras/primesense.h>
 #include <dip/cameras/softkinetic.h>
 #include <dip/common/types.h>
@@ -81,6 +82,7 @@ bool   save_Color   = false;
 bool   save_Normal  = false;
 bool   save_Cloud   = false;
 bool   pause_run        = false;
+int    cur_frame = 0;
 //-----------------------------------------------why1 e
 
 
@@ -277,9 +279,9 @@ void timer(int fps) {
   glutTimerFunc(1000 / fps, timer, fps);
 }
 
-int main(int argc, char **argv) {
-  if (argc > 2|| argc<1) {
-    printf("Usage: %s [Dump File]\n", argv[0]);
+int main(int argc, char **argv){
+  if (argc > 3|| argc<1||argc ==2){
+    printf("Usage: %s [filename  'h'/other_char ]\n", argv[0]);
     printf("do not need <Mesh File> here\n");
     return -1;
   }
@@ -293,15 +295,22 @@ int main(int argc, char **argv) {
   glutInit(&argc, argv);
 
   // Initialize Camera
-  if (argc > 1) {
-    g_camera = new DumpFile(argv[1]);
-  } else {
+ // Initialize Camera
+if (argc > 2){
+  
+    if(argv[2] == "h")
+    {
+        g_camera = new DumpFile(argv[1]);
+    } else{
+        g_camera = new OniFile(argv[1]);
+    }
+} else{
 #ifndef SOFTKINETIC
     g_camera = new PrimeSense();
 #else
     g_camera = new SoftKinetic();
 #endif
-  }
+}
 
   if (!g_camera->enabled()) {
     printf("Unable to Open Camera\n");

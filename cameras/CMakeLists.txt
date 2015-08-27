@@ -28,12 +28,15 @@ set(INCS
     include/dip/${MODULE_NAME}/dumpfile.h
     include/dip/${MODULE_NAME}/primesense.h
     include/dip/${MODULE_NAME}/softkinetic.h
+    include/dip/${MODULE_NAME}/onifile.h
+
     )
 
 set(SRCS
     src/dumpfile.cpp
     src/primesense.cpp
     src/softkinetic.cpp
+    src/onifile.cpp
     )
 
 set(LIBS
